@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+@theme {
+    /* Primarios Principales */
+    --color-artist: #3C83F6;
+    --color-producer: #FFD701;
+
+    /* Variantes de Artista */
+    --color-artist-dark: #131722;
+    --color-artist-muted: #1F2D47;
+    /* Tu 70% */
+
+    /* Variantes de Productor */
+    --color-producer-dark: #2E2619;
+
+    /* Escala de Neutros / Fondo */
+    --color-dark: #09090B;
+    --color-gray-dark: #18181B;
+    --color-gray-light: #27272A;
+    --color-subtitle: #A6A6A6;
+    --color-light: #F1F5F9;
+
+    /* Estados */
+    --color-success: #22C55E;
+    --color-error: #EF4444;
+}
