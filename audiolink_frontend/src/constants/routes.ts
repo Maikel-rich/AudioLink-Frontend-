@@ -4,5 +4,9 @@ export const ROUTES = {
     PRODUCER_PROFILE: "/producer/:id",
     SEARCH: "/home",
     FINISHED_PROJECTS: "/finishedProjects",
-    MESSAGES: "/messages"
+    MESSAGES: "/messages",
+    PROJECTS: "/projects",
+    LIBRARY: "/library",
+    SENT_PROPOSALS: "/proposals",
+    SETTINGS: "/settings"
 };
