@@ -1,6 +1,14 @@
+import Sidebar from "@/components/SideBar";
+
 function MessagePage() {
     return (
-        <div>MessagePage</div>
+        <div>
+            <Sidebar
+                userType="artist"
+                isCollapsed={true}
+                hasMessages={true}
+            />
+        </div>
     );
 }
 
