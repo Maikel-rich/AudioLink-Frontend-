@@ -1,7 +1,7 @@
 export const ROUTES = {
     LANDING: "/",
     LOGIN: "/login",
-    PRODUCER_PROFILE: "/producer/:id",
+    PRODUCER_PROFILE: "/producer",
     SEARCH: "/home",
     FINISHED_PROJECTS: "/finishedProjects",
     MESSAGES: "/messages",
