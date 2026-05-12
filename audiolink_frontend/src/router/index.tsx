@@ -7,6 +7,8 @@ import LandingPage from "@/pages/LandingPage";
 import MessagePage from "@/pages/MessagePage";
 import ProducerProfilePage from "@/pages/ProducerProfilePage";
 import SearchPage from "@/pages/SearchPage";
+import ManageProjectsPage from "@/pages/ManageProjectsPage"
+import LoginPage from "@/pages/LoginPage";
 
 export const router = createBrowserRouter([
     {
@@ -18,6 +20,8 @@ export const router = createBrowserRouter([
             { path: ROUTES.FINISHED_PROJECTS, element: <FinishedProjectsPage /> },
             { path: ROUTES.MESSAGES, element: <MessagePage /> },
             { path: ROUTES.PRODUCER_PROFILE, element: <ProducerProfilePage /> },
+            { path: ROUTES.PROJECTS, element: <ManageProjectsPage /> },
+            { path: ROUTES.LOGIN, element: <LoginPage /> },
         ],
     },
 ]);
