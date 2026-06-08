@@ -1,55 +1,147 @@
-import React from 'react';
-import { Play, SkipBack, SkipForward, Volume2, ListMusic, Maximize2, Activity } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Play, Pause, Volume2, VolumeX, Disc } from 'lucide-react';
+import { useAudio } from '@/context/AudioContext';
 
 const AudioPlayer = () => {
+    const {
+        currentBeat,
+        isPlaying,
+        currentTime,
+        duration,
+        volume,
+        isMuted,
+        pause,
+        resume,
+        seek,
+        setVolume,
+        toggleMute
+    } = useAudio();
+
+    const progressBarRef = useRef<HTMLDivElement>(null);
+    const volumeBarRef = useRef<HTMLDivElement>(null);
+
+    const formatTime = (time: number): string => {
+        if (isNaN(time)) return '0:00';
+        const minutes = Math.floor(time / 60);
+        const seconds = Math.floor(time % 60);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (progressBarRef.current && duration) {
+            const rect = progressBarRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const percentage = Math.max(0, Math.min(1, x / rect.width));
+            const newTime = percentage * duration;
+            seek(newTime);
+        }
+    };
+
+    const handleVolumeChange = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (volumeBarRef.current) {
+            const rect = volumeBarRef.current.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const newVolume = Math.max(0, Math.min(1, x / rect.width));
+            setVolume(newVolume);
+        }
+    };
+
+    const handlePlayPause = () => {
+        if (isPlaying) {
+            pause();
+        } else if (currentBeat) {
+            resume();
+        }
+    };
+
+    const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
+
+    if (!currentBeat) {
+        return null;
+    }
+
     return (
-        <div className="fixed bottom-0 left-0 right-0 lg:left-72 bg-dark/95 backdrop-blur-2xl border-t border-light/10 p-5 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
-            <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-12">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+            <div className="bg-[#0f0f12]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50 p-4 px-6 min-w-[380px] md:min-w-[520px]">
+                <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden bg-black/50 flex-shrink-0 relative">
+                        {currentBeat.cloudinaryUrl ? (
+                            <img
+                                src={currentBeat.cloudinaryUrl}
+                                alt={currentBeat.title}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-artist/20 to-transparent">
+                                <Disc size={20} className="text-subtitle/40" />
+                            </div>
+                        )}
+                    </div>
 
-                {/* Track Info */}
-                <div className="flex items-center gap-5 min-w-75">
-                    <div className="w-14 h-14 bg-artist/20 rounded-lg border border-artist/30 overflow-hidden shrink-0 group relative">
-                        <img src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=100" alt="Cover" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Activity size={16} className="text-artist animate-pulse" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-light font-black text-sm uppercase tracking-wider truncate">
+                                {currentBeat.title}
+                            </h4>
+                            <span className="text-[8px] font-mono text-subtitle/40 bg-white/5 px-2 py-0.5 rounded">
+                                {currentBeat.genre || 'Beat'}
+                            </span>
+                            {currentBeat.bpm && (
+                                <span className="text-[8px] font-mono text-subtitle/40 bg-white/5 px-2 py-0.5 rounded">
+                                    {currentBeat.bpm} BPM
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="flex items-center gap-3 mt-2">
+                            <span className="text-[9px] font-mono text-subtitle/40 tabular-nums min-w-8">
+                                {formatTime(currentTime)}
+                            </span>
+                            <div
+                                ref={progressBarRef}
+                                className="flex-1 h-1.5 bg-white/10 rounded-full relative group cursor-pointer"
+                                onClick={handleSeek}
+                            >
+                                <div
+                                    className="absolute h-full bg-gradient-to-r from-artist to-artist/80 rounded-full"
+                                    style={{ width: `${progressPercentage}%` }}
+                                />
+                                <div
+                                    className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+                                    style={{ left: `${progressPercentage}%`, transform: 'translate(-50%, -50%)' }}
+                                />
+                            </div>
+                            <span className="text-[9px] font-mono text-subtitle/40 tabular-nums min-w-8">
+                                {formatTime(duration)}
+                            </span>
                         </div>
                     </div>
-                    <div className="flex flex-col">
-                        <h4 className="text-light font-black text-xs uppercase tracking-widest truncate">preview_mix_master_v2.wav</h4>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="text-[8px] font-black bg-artist/10 text-artist px-1.5 py-0.5 rounded border border-artist/20">48kHz / 24bit</span>
-                            <span className="text-[9px] font-bold text-subtitle/40 uppercase">Kael Beats</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Controles */}
-                <div className="flex-1 flex flex-col items-center gap-3">
-                    <div className="flex items-center gap-8">
-                        <button className="text-subtitle/30 hover:text-light transition-colors"><SkipBack size={20} /></button>
-                        <button className="w-12 h-12 bg-artist rounded-full flex items-center justify-center text-white shadow-lg shadow-artist/20 hover:scale-105 active:scale-95 transition-all">
-                            <Play size={24} fill="white" />
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handlePlayPause}
+                            className="w-10 h-10 bg-artist rounded-full flex items-center justify-center text-white shadow-lg shadow-artist/20 hover:scale-105 active:scale-95 transition-all"
+                        >
+                            {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-0.5" />}
                         </button>
-                        <button className="text-subtitle/30 hover:text-light transition-colors"><SkipForward size={20} /></button>
-                    </div>
 
-                    {/* Barra de Progreso */}
-                    <div className="w-full flex items-center gap-4 px-10">
-                        <span className="text-[9px] font-black text-subtitle/40 tabular-nums">01:24</span>
-                        <div className="flex-1 h-1 bg-white/5 rounded-full relative group cursor-pointer">
-                            <div className="absolute h-full bg-linear-to-r from-artist to-blue-400 rounded-full w-[45%]" />
-                            <div className="absolute top-1/2 -translate-y-1/2 left-[45%] w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-[0_0_10px_white]" />
-                        </div>
-                        <span className="text-[9px] font-black text-subtitle/40 tabular-nums">03:45</span>
-                    </div>
-                </div>
-
-                {/* Mixer Tools */}
-                <div className="flex items-center gap-6 min-w-75 justify-end">
-                    <div className="flex items-center gap-3 group">
-                        <Volume2 size={16} className="text-subtitle/40 group-hover:text-artist transition-colors" />
-                        <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-subtitle/40 w-2/3 group-hover:bg-artist transition-all" />
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={toggleMute}
+                                className="text-subtitle/40 hover:text-artist transition-colors"
+                            >
+                                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+                            </button>
+                            <div
+                                ref={volumeBarRef}
+                                className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden group cursor-pointer"
+                                onClick={handleVolumeChange}
+                            >
+                                <div
+                                    className="h-full bg-artist/60 group-hover:bg-artist transition-all rounded-full"
+                                    style={{ width: `${isMuted ? 0 : volume * 100}%` }}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,96 +1,176 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, User, Activity, Volume2, ArrowRight } from 'lucide-react';
+import { User, ArrowRight, Play, Pause, Headphones, Sparkles, Disc } from 'lucide-react';
 import { ROUTES } from "@/constants/routes";
+import { beatService, BeatResponse } from '@/services/beatService';
+import { useAudio } from '@/context/AudioContext';
 
 interface ProducerCardProps {
-    name: string;
-    type: string;
-    tags: string[];
-    price: number;
-    image: string;
+    id: number;
+    fullName: string | null;
+    profilePicture: string | null;
+    skills?: string[] | null;
+    type?: string;
+    price?: number;
 }
 
-const ProducerCard = ({ name, type, tags, price, image }: ProducerCardProps) => {
+const ProducerCard = ({
+    id,
+    fullName,
+    profilePicture,
+    skills = [],
+    type = "PRODUCER",
+    price = 0
+}: ProducerCardProps) => {
     const navigate = useNavigate();
+    const { currentBeat, isPlaying, playBeat, pause } = useAudio();
+    const [featuredBeat, setFeaturedBeat] = useState<BeatResponse | null>(null);
+    const [isLoadingBeat, setIsLoadingBeat] = useState(false);
+
+    const fallbackImage = "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=500";
+
+    useEffect(() => {
+        const loadFeaturedBeat = async () => {
+            try {
+                const beats = await beatService.getProducerBeats(id);
+                const featured = beats.find(beat => beat.isFeatured === true);
+                setFeaturedBeat(featured || null);
+            } catch (error) {
+                // Error silencioso en producción
+            }
+        };
+        loadFeaturedBeat();
+    }, [id]);
 
     const goToProfile = () => {
-        navigate(`${ROUTES.PRODUCER_PROFILE}`);
+        const targetRoute = ROUTES.PRODUCER_PROFILE.replace(':id', id.toString());
+        navigate(targetRoute);
+    };
+
+    const handlePlayFeatured = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        if (!featuredBeat?.taggedAudioUrl) return;
+
+        setIsLoadingBeat(true);
+
+        if (currentBeat?.id === featuredBeat.id && isPlaying) {
+            pause();
+        } else {
+            playBeat(featuredBeat);
+        }
+
+        setIsLoadingBeat(false);
+    };
+
+    const isCurrentBeatPlaying = () => {
+        return currentBeat?.id === featuredBeat?.id && isPlaying;
     };
 
     return (
-        <div className="group relative flex bg-[#0d0d0f] rounded-xl overflow-hidden h-32 border border-light/3 transition-all duration-500 hover:border-artist/40 hover:bg-[#111114] shadow-lg">
+        <div
+            className="group relative flex bg-[#09090b] rounded-xl overflow-hidden h-40 border border-white/[0.03] transition-all duration-500 hover:border-artist/30 hover:bg-[#0e0e12] shadow-[0_8px_30px_rgb(0,0,0,0.6)] cursor-pointer"
+            onClick={goToProfile}
+        >
             <div
-                className="w-32 h-full relative shrink-0 overflow-hidden cursor-pointer group/play"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    console.log("Reproduciendo preview de:", name);
-                }}
+                className="w-40 h-full relative shrink-0 overflow-hidden border-r border-white/[0.02] cursor-pointer"
+                onClick={handlePlayFeatured}
             >
                 <img
-                    src={image}
-                    alt={name}
-                    className="w-full h-full object-cover grayscale opacity-40 group-hover/play:opacity-80 group-hover/play:scale-110 transition-all duration-700"
+                    src={profilePicture || fallbackImage}
+                    alt={fullName || "Producer"}
+                    className="w-full h-full object-cover grayscale opacity-35 group-hover:opacity-65 transition-all duration-700 ease-out"
                 />
 
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-black/60 backdrop-blur-md border border-light/10 flex items-center justify-center group-hover/play:bg-artist group-hover/play:border-artist group-hover/play:scale-105 transition-all shadow-2xl">
-                        <Play size={20} className="text-light fill-current ml-1 transition-transform group-active/play:scale-90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent opacity-60" />
+
+                {featuredBeat && (
+                    <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded-full px-2 py-0.5 flex items-center gap-1 z-10">
+                        <Sparkles size={8} className="text-artist" />
+                        <span className="text-[6px] font-black text-white uppercase tracking-wider">BEAT</span>
+                    </div>
+                )}
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity duration-300 z-20">
+                    <div className={`w-10 h-10 rounded-full bg-artist text-white flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.5)] transform transition-all duration-300 ${isCurrentBeatPlaying() ? 'scale-100' : 'scale-90 hover:scale-100'}`}>
+                        {isLoadingBeat ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : isCurrentBeatPlaying() ? (
+                            <Pause size={16} fill="white" />
+                        ) : (
+                            <Play size={16} fill="white" className="ml-0.5" />
+                        )}
                     </div>
                 </div>
 
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-0.5 bg-black/40 rounded-full border border-light/5 opacity-0 group-hover/play:opacity-100 transition-opacity">
-                    <Volume2 size={10} className="text-artist" />
-                    <span className="text-[7px] font-black text-light uppercase tracking-tighter">Preview</span>
-                </div>
+                {featuredBeat && (
+                    <div className="absolute bottom-2 right-2 bg-black/50 rounded-full p-1">
+                        <Headphones size={10} className="text-artist" />
+                    </div>
+                )}
             </div>
 
-            <div
-                className="flex-1 p-4 flex flex-col justify-between overflow-hidden cursor-pointer"
-                onClick={goToProfile}
-            >
-                <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                        <Activity size={10} className="text-artist/60" />
-                        <span className="text-[7px] font-black text-subtitle/40 uppercase tracking-[0.2em] truncate">{type}</span>
+            <div className="flex-1 p-5 flex flex-col justify-between min-w-0 relative z-10">
+                <div className="flex flex-col justify-center flex-1 min-w-0 pb-2">
+                    <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[7.5px] font-black tracking-[0.2em] text-artist bg-artist/10 border border-artist/20 px-2.5 py-0.5 rounded-sm uppercase">
+                            {type}
+                        </span>
+
+                        {isCurrentBeatPlaying() && (
+                            <div className="flex items-end gap-0.5 h-2.5">
+                                <div className="w-[1.5px] h-1.5 bg-artist animate-pulse" />
+                                <div className="w-[1.5px] h-2.5 bg-artist animate-pulse delay-75" />
+                                <div className="w-[1.5px] h-2 bg-artist animate-pulse delay-150" />
+                                <div className="w-[1.5px] h-1.5 bg-artist animate-pulse delay-300" />
+                            </div>
+                        )}
                     </div>
-                    <h3 className="text-lg font-black text-light uppercase tracking-tighter truncate leading-tight group-hover:text-artist transition-colors">
-                        {name}
+
+                    <h3 className="text-base font-black text-light tracking-tight uppercase truncate group-hover:text-white transition-colors">
+                        {fullName || "FIRMA ANÓNIMA"}
                     </h3>
-                    <div className="flex gap-2 mt-2 opacity-60">
-                        {tags.slice(0, 2).map(tag => (
-                            <span key={tag} className="text-[7px] font-bold text-subtitle/60 uppercase tracking-widest px-1.5 py-0.5 border border-light/5 rounded-sm bg-light/2">
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
                 </div>
 
-                <div className="flex items-end justify-between">
-                    <div>
-                        <span className="block text-[6px] font-black text-subtitle/20 uppercase tracking-widest">Fee desde</span>
-                        <span className="text-sm font-black text-light tracking-tighter">${price}</span>
+                <div className="flex items-end justify-between border-t border-white/[0.03] pt-3">
+                    <div className="flex flex-col">
+                        <span className="text-[7.5px] font-black text-subtitle/30 uppercase tracking-[0.15em] mb-0.5">Precio desde:</span>
+                        <span className="text-base font-black text-white tracking-tighter tabular-nums">
+                            {price > 0 ? `${price.toLocaleString()}€` : 'ON DEMAND'}
+                        </span>
                     </div>
-                    <div className="flex gap-1">
-                        {[1, 2, 3].map(i => <div key={i} className="w-1 h-1 bg-artist/20 rounded-full" />)}
-                    </div>
+
+                    {featuredBeat && (
+                        <div className="text-right">
+                            <span className="text-[6px] font-black text-subtitle/30 uppercase tracking-wider">
+                                Beat destacado
+                            </span>
+                            <p className="text-[8px] font-medium text-subtitle/50 truncate max-w-[100px]">
+                                {featuredBeat.title}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <button
-                onClick={goToProfile}
-                className="w-14 flex flex-col items-center justify-center gap-2 bg-light/2 hover:bg-artist border-l border-light/5 transition-all group/profile"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    goToProfile();
+                }}
+                className="w-14 flex flex-col items-center justify-center bg-white/[0.01] hover:bg-artist border-l border-white/[0.03] transition-all duration-300 group/profile relative"
             >
-                <div className="p-2 rounded-lg bg-light/5 group-hover/profile:bg-light/20 transition-colors">
-                    <User size={16} className="text-subtitle/40 group-hover/profile:text-light" />
-                </div>
-                <span className="text-[7px] font-black text-subtitle/20 group-hover/profile:text-light uppercase tracking-tighter leading-none">
-                    Perfil
+                <ArrowRight
+                    size={16}
+                    className="text-subtitle/30 group-hover/profile:text-white group-hover:translate-x-0.5 transition-all duration-300 mb-4"
+                />
+
+                <span className="absolute bottom-5 text-[6.5px] font-black tracking-widest uppercase text-subtitle/20 group-hover/profile:text-white/80 origin-center select-none">
+                    OPEN
                 </span>
-                <ArrowRight size={10} className="text-subtitle/10 group-hover/profile:text-light mt-1 translate-x-0.5 group-hover:translate-x-0 transition-transform" />
             </button>
 
-            <div className="absolute bottom-0 left-0 h-0.5 bg-artist opacity-0 group-hover:opacity-100 transition-opacity" style={{ width: '32px' }} />
+            <div className="absolute bottom-0 left-0 h-[1.5px] bg-gradient-to-r from-artist via-artist/50 to-transparent w-0 group-hover:w-full transition-all duration-500 ease-out" />
         </div>
     );
 };
